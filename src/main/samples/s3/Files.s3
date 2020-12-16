@@ -1,0 +1,20 @@
+system SubDirectories : SProvider<List<String>> {
+	@Inject val path : String
+	@Provide val result = {
+		listOf(*File(path.result()).listFiles()!!).filter { it.isDirectory }.map { it.path }
+	}
+}
+
+
+system DirectoryTree : SProvider<DirectoryNode> {
+	@Inject val path : String;
+	val createdChildren = for(f in childDirectories) {
+		yield DirectoryTree(path = f)@!.result
+	};
+	val childDirectories = SubDirectories{path = path@DirectoryTree}@!.result;
+	@Provide val result =  DirectoryNode {
+		path = path@FileSytemTree
+		children = createdChildren;
+	} @!;
+};
+

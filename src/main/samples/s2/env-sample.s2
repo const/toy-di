@@ -1,0 +1,29 @@
+system Application {
+	include Postgresql
+	include HibernateJpa
+	include JettyWeb
+	include PetStore
+}
+system PetStore {
+	include DbLayer
+	include Controllers
+}
+system DbUnitTests {
+	include InMemoryDb {
+		emulate = "postgresql"
+	}
+	include HibernateJpa {
+		generateSchema = true
+	}
+	include DbLayer
+	@Injector fun inject(t : TestConfig) : TestConfig;
+}
+class TestConfig {
+	@Inject lateinit val repository : MyRepository;
+	@Inject lateinit val entityManager : EntityManager;
+}
+class RepositoryTest(@System val testSystem : DbUnitTests) {
+	val config = testSystem.inject(TestConfig())
+	val repository = config.repository
+	// ....
+}

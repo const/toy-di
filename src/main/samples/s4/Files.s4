@@ -1,0 +1,42 @@
+system abstract SFunction<A, R> {
+	system abstract apply : SProvider<R> { @Inject val argument : A }
+}
+system FsList : SFunction<String, List<String>> {
+	system apply : SProvider<String> {
+		@Inject val argument : String
+		@Provide val result = {
+			listOf(*File(argument).listFiles()!!).filter { it.isDirectory }.map { it.path }
+		}
+	}
+}
+
+
+system MapList<T, R> : SProvider<List<R>> {
+	@Inject val list : List<T>
+	@Inject val mapper : SFunction<T, R>
+	@Provide val result : List<R> = list.map{ mapper.apply(SProviders.of(it)).result }
+}
+
+system TreeConfig<P, N> : SProvider<N> {
+	@Inject val path : P;
+	@Inject val listChildren : SFunction<P, List<P>>
+	@Inject val createNode : SFunction2<P, List<N>, N>
+	@Provide val result = createNode.apply(path, MapList {
+		list = listChildren.apply(path).result
+		mapper = { TreeConfig(it, listChildren, createNode).result }
+	}).result
+}
+
+
+system DirectoryTreeConfig {
+	@Inject val path : String
+	@Provide val result = TreeConfig {
+		path = path@DirectoryTreeConfig
+		listChildren = FsList()
+		createNode = {p, children ->
+			SProvider.ofCloseable(DirectoryNode(p, children))
+		}
+	}.result
+}
+
+

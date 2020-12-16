@@ -1,0 +1,25 @@
+system abstract ActionContext {
+	system abstract action : SProvider<Unit> {
+		@Inject val id : String
+		@Inject val category : String
+		@Inject @Lazy val action : Runnable
+	}
+}
+system abstract ActionManager {
+	system abstract withActions(body : system abstract {
+		@Inject @Delegate val actionContext : ActionContext
+	})
+}
+
+system PluginSample {
+	@Inject val actionManager : ActionManager
+	@Inject val fileManager : FileManager
+	actionManager.withActions {
+		action {
+			id = "newCoolFile"
+			category = "file.new",
+			action = {fileManager.newFile(contentType = "text/cool")}
+		}
+	}
+}
+
